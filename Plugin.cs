@@ -65,7 +65,7 @@ public class Plugin : BaseUnityPlugin
     /// Returns the name of a multitile object at a location
     /// </summary>
     public static string GetBuildingNameAt(int x, int z){
-        WorldManager WM = WorldManager.manageWorld;
+        WorldManager WM = WorldManager.Instance;
         int multiTileID = WM.onTileMap[x,z];
         return BuildingManager.manage.getBuildingName(multiTileID);
     }
@@ -99,8 +99,8 @@ public class Plugin : BaseUnityPlugin
     public static Vector2Int GetMultiTileObjectEnds(int x, int z){
 
         // retrieve all the values involved in the calculation
-        WorldManager WM = WorldManager.manageWorld;
-        int rotation = WorldManager.manageWorld.rotationMap[x, z];
+        WorldManager WM = WorldManager.Instance;
+        int rotation = WM.rotationMap[x, z];
 
         try {
             TileObjectSettings settings = WM.getTileObjectSettings(x, z);
@@ -133,9 +133,10 @@ public class Plugin : BaseUnityPlugin
     public static Vector2Int FindTileByID(int searchID){
         int mX = -1;
         int mZ = -1;
-        WorldManager WM = WorldManager.manageWorld;
-        for (int xTile = 0; xTile < WorldManager.manageWorld.getMapSize(); xTile++){
-            for (int zTile = 0; zTile <= WorldManager.manageWorld.getMapSize(); zTile++){
+        WorldManager WM = WorldManager.Instance;
+        int defaultMapSize = 1000;
+        for (int xTile = 0; xTile < defaultMapSize; xTile++){
+            for (int zTile = 0; zTile <= defaultMapSize; zTile++){
                 try{
                     if (WM.onTileMap[xTile, zTile] == searchID){
                         mX = xTile;
@@ -159,27 +160,27 @@ public class Plugin : BaseUnityPlugin
     /// <param name="stackAmount"></param>
     public static void UpdateSellTasks(int itemID, int stackAmount)
 	{
-		if (Inventory.inv.allItems[itemID].taskWhenSold != DailyTaskGenerator.genericTaskType.None)
+		if (Inventory.Instance.allItems[itemID].taskWhenSold != DailyTaskGenerator.genericTaskType.None)
 		{
-			DailyTaskGenerator.generate.doATask(Inventory.inv.allItems[itemID].taskWhenSold, stackAmount);
+			DailyTaskGenerator.generate.doATask(Inventory.Instance.allItems[itemID].taskWhenSold, stackAmount);
 			return;
 		}
-		if (Inventory.inv.allItems[itemID].consumeable)
+		if (Inventory.Instance.allItems[itemID].consumeable)
 		{
-			if (Inventory.inv.allItems[itemID].consumeable.isFruit)
+			if (Inventory.Instance.allItems[itemID].consumeable.isFruit)
 			{
 				DailyTaskGenerator.generate.doATask(DailyTaskGenerator.genericTaskType.SellFruit, stackAmount);
 			}
-			else if (Inventory.inv.allItems[itemID].consumeable.isVegitable)
+			else if (Inventory.Instance.allItems[itemID].consumeable.isVegitable)
 			{
 				DailyTaskGenerator.generate.doATask(DailyTaskGenerator.genericTaskType.SellCrops, stackAmount);
 			}
 		}
-		if (Inventory.inv.allItems[itemID].fish)
+		if (Inventory.Instance.allItems[itemID].fish)
 		{
 			DailyTaskGenerator.generate.doATask(DailyTaskGenerator.genericTaskType.SellFish, stackAmount);
 		}
-		if (Inventory.inv.allItems[itemID].bug)
+		if (Inventory.Instance.allItems[itemID].bug)
 		{
 			DailyTaskGenerator.generate.doATask(DailyTaskGenerator.genericTaskType.SellBugs, stackAmount);
 		}
@@ -225,16 +226,14 @@ public class Plugin : BaseUnityPlugin
                 }
 
                 // Guard clause - avoid selling irreplacable items
-                // Not sure what best method here is - below checks seem to cover most cases I can think of
-                bool isUnique = Inventory.inv.allItems[itemID].isUniqueItem;
-                bool isVeryUnique = Inventory.inv.allItems[itemID].isOneOfKindUniqueItem;
-                bool isDeed = Inventory.inv.allItems[itemID].isDeed;
-                if (isUnique || isVeryUnique || isDeed){
+                bool isVeryUnique = Inventory.Instance.allItems[itemID].isOneOfKindUniqueItem;
+                bool isDeed = Inventory.Instance.allItems[itemID].isDeed;
+                if (isVeryUnique || isDeed){
                     continue;
                 }
 
                 // Calculate sell quantity (stack size aware)
-                bool unstackableItem = !Inventory.inv.allItems[itemID].checkIfStackable();
+                bool unstackableItem = !Inventory.Instance.allItems[itemID].checkIfStackable();
                 int sellQty = itemStacks[i];
                 if (unstackableItem){
                     sellQty = 1;
@@ -246,7 +245,7 @@ public class Plugin : BaseUnityPlugin
                 }
 
                 // calculate the sale outcomes
-                int unitPrice = Inventory.inv.allItems[itemID].value;
+                int unitPrice = Inventory.Instance.allItems[itemID].value;
                 int stackPrice = unitPrice * sellQty;
 
                 // Track the sale metrics
@@ -276,7 +275,7 @@ public class Plugin : BaseUnityPlugin
                 chest.itemIds[dinkSlot] = ITEMID_DINK;
                 chest.itemStacks[dinkSlot] += saleTotal;
             } else {
-                Inventory.inv.changeWallet(saleTotal, false);
+                Inventory.Instance.changeWallet(saleTotal, false);
             }
 
             // Update any related tasks
@@ -315,7 +314,7 @@ public class Plugin : BaseUnityPlugin
             for (int zTile = storePos[1]; zTile <= ends[1]; zTile++){
                 Chest targetChest = ContainerManager.manage.getChestForWindow(xTile, zTile, null);
                 if (targetChest != null){
-                    int tileID = WorldManager.manageWorld.onTileMap[xTile,zTile];
+                    int tileID = WorldManager.Instance.onTileMap[xTile,zTile];
                     if (!parsedExcludeIDs.Contains(tileID)){
                         SellShippingCrateContentsToJohn(targetChest);    
                     }
@@ -335,7 +334,7 @@ public class Plugin : BaseUnityPlugin
         private static void Prefix()
         {
             // Only the host should ever process shipping crates
-            if (NetworkMapSharer.share.isServer){
+            if (NetworkMapSharer.Instance.isServer){
                 ShipAllShippingCrateContents();
             }
         }
